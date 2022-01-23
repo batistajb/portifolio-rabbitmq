@@ -1,0 +1,73 @@
+{
+  "name": "esv7",
+  "defaultSixze": 50,
+  "connector": "esv6",
+  "version": 7,
+  "index": "postter",
+  "mappingProperties": {
+    "docType": {
+      "type": "keyword"
+    },
+    "id": {
+      "type": "keyword"
+    },
+    "uuid": {
+      "type": "keyword"
+    },
+    "content": {
+      "type": "text"
+    },
+    "user_id": {
+      "type": "keyword"
+    },
+    "user_name": {
+      "type": "text"
+    },
+    "type": {
+      "type": "keyword"
+    },
+    "url": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "status": {
+      "type": "boolean"
+    },
+    "comments_count": {
+      "type": "integer"
+    },
+    "likes_count": {
+      "type": "integer"
+    },
+    "created_at": {
+        "type": "date",
+        "fields": {
+          "keyword": {
+            "type": "date"
+          }
+        }
+      },
+    "updated_at": {
+        "type": "date",
+        "fields": {
+          "keyword": {
+            "type": "date"
+          }
+        }
+      },
+    "follows": {
+      "type": "nested",
+      "properties": {
+        "id": {"type": "keyword"},
+        "user_uuid": {"type": "keyword"},
+        "user_uuid_follow": {"type": "keyword"},
+        "user_name_follow": {"type": "text"}
+      }
+    }
+  }
+}
