@@ -1,0 +1,124 @@
+version: '3'
+services:
+
+  nginx:
+    image: nginx:1.17-alpine
+    container_name: postter-nginx
+    restart: unless-stopped
+    networks:
+      - posterr_back_end
+    ports:
+      - 8080:80
+    volumes:
+      - ./laravel-api/:/var/www
+      - ./rootfs/laravel-api/etc/nginx/conf.d:/etc/nginx/conf.d
+
+  postter-laravel-api:
+    build:
+      args:
+          user: root
+          uid: 1000
+      context: laravel-api
+      dockerfile: Dockerfile
+    hostname: laravel-api
+    container_name: postter-laravel-api
+    environment:
+      DB_HOST: database
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    working_dir: /var/www/
+    volumes:
+      - './laravel-api:/var/www'
+    networks:
+      - posterr_back_end
+    depends_on:
+      - postter-database
+      - postter-cache
+
+  postter-cache:
+    image: redis:latest
+    hostname: postter-cache
+    container_name: postter-cache
+    networks:
+      - posterr_back_end
+    ports:
+      - '6379:6379'
+
+  postter-database:
+    image: mysql:5.7
+    hostname: database
+    container_name: postter-database
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - "./.docker/database_data:/var/lib/mysql"
+      - "./rootfs/laravel-api/mysql:/docker-entrypoint-initdb.d"
+    ports:
+      - "3306:3306"
+    networks:
+      - posterr_back_end
+
+  postter-posts-api:
+    build: loopback-posts-api
+    entrypoint: ./entrypoint.sh
+    container_name: postter-posts-api
+    environment:
+      - HOST=0.0.0.0
+    networks:
+      - posterr_back_end
+    ports:
+      - 3000:3000
+    depends_on:
+      - rabbitmq
+      - es_data_posterr
+    volumes:
+      - ./loopback-posts-api:/home/node/app
+
+  es_data_posterr:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+    hostname: elasticsearch
+    container_name: es_data_posterr
+    restart: on-failure
+    environment:
+      - 'discovery.type=single-node'
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    volumes:
+      - ./.docker/elastic:/usr/share/elasticsearch'
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    networks:
+      - posterr_back_end
+
+  kibana_posterr:
+    image: docker.elastic.co/kibana/kibana:7.9.3
+    container_name: kibana_posterr
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    networks:
+      - posterr_back_end
+
+  rabbitmq:
+    image: 'rabbitmq:3.8-management-alpine'
+    container_name: posterr-rabbitmq
+    hostname: rabbitmq
+    restart: on-failure
+    ports:
+      - 15672:15672
+      - 5672:5672
+    volumes:
+      - ./.docker/rabbitmq:/var/lib/rabbitmq/mnesia
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    networks:
+      - posterr_back_end
+
+networks:
+  posterr_back_end:
