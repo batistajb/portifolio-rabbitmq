@@ -1,6 +1,6 @@
 # Project Postter
 
-The project was developed to selective process, see below the steps to run project and time budget used.
+The project was developed to study about techs news, see below the steps to run project and time budget used.
 
 ### Time budget
 
